@@ -106,16 +106,44 @@ is an item of the [requires list](#cpack_conan_package_requirescpack_conan_compn
 
 ### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>_OPTIONS<br/>CPACK\_CONAN\_\<compName\>\_PACKAGE_REQUIRES\_\<requireName\>_OPTIONS
 
-A list of option names for the particular dependency , where `<requireName>` is an item of the [requires list](#cpack_conan_package_requirescpack_conan_compname_package_requires) transformed with [`string(MAKE_C_IDENTIFIER)`](https://cmake.org/cmake/help/latest/command/string.html#command:string) command.
+A list of option names for the particular dependency, where `<requireName>` is an item of the [requires list](#cpack_conan_package_requirescpack_conan_compname_package_requires) transformed with [`string(MAKE_C_IDENTIFIER)`](https://cmake.org/cmake/help/latest/command/string.html#command:string) command.
 
 * Mandatory : NO
 * Default   : None
 
 ### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>\_OPTIONS\_\<optionName\><br/>CPACK_CONAN\_\<compName\>\_PACKAGE_REQUIRES_\<requireName\>\_OPTIONS\_\<optionName\>
 
+The value for the particular dependency option, where `<requireName>` is an item of the [requires list](#cpack_conan_package_requirescpack_conan_compname_package_requires) 
+and `<optionName>` is an item of the [requires options list](#cpack_conan_package_requires_requirename_optionscpack_conan_compname_package_requires_requirename_options)
+transformed with [`string(MAKE_C_IDENTIFIER)`](https://cmake.org/cmake/help/latest/command/string.html#command:string) command.
+
+* Mandatory : NO
+* Default   : None
+
 ### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>_OPTIONS_CONDITIONS<br/>CPACK_CONAN\_\<compName\>\_PACKAGE_REQUIRES\_\<requireName\>_OPTIONS_CONDITIONS
+
+A list of names for the particular dependency option condition, where `<requireName>` is an item of the [requires list](#cpack_conan_package_requirescpack_conan_compname_package_requires) 
+transformed with [`string(MAKE_C_IDENTIFIER)`](https://cmake.org/cmake/help/latest/command/string.html#command:string) command.
+
+* Mandatory : NO
+* Default   : None
 
 ### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>\_OPTIONS_CONDITIONS_\<conditionName\><br/>CPACK_CONAN_\<compName\>\_PACKAGE_REQUIRES\_\<requireName\>\_OPTIONS_CONDITIONS\_\<conditionName\>
 
+A python condition that is injected into the generated Conan recipe and used to create a conditional block for the particular dependency option, 
+where `<requireName>` is an item of the [requires list](#cpack_conan_package_requirescpack_conan_compname_package_requires)
+and `<conditionName>` is an item of the [conditional requires options list](#cpack_conan_package_requires_requirename_options_conditionscpack_conan_compname_package_requires_requirename_options_conditions) and
+transformed with [`string(MAKE_C_IDENTIFIER)`](https://cmake.org/cmake/help/latest/command/string.html#command:string) command.
+
+* Mandatory : NO
+* Default   : None
+
 ### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>\_OPTIONS\_\<optionName\>\_CONDITIONS\_\<conditionName\><br/>CPACK_CONAN_\<compName\>\_PACKAGE_REQUIRES\_\<requireName\>\_OPTIONS_\<optionName\>\_CONDITIONS\_\<conditionName\>
 
+The value for the conditional particular dependency option, where `<requireName>` is an item of the [requires list](#cpack_conan_package_requirescpack_conan_compname_package_requires)
+, `<optionName>` is an item of the [requires options list](#cpack_conan_package_requires_requirename_optionscpack_conan_compname_package_requires_requirename_options) and
+`<conditionName>` is an item of the [conditional requires options list](#cpack_conan_package_requires_requirename_options_conditionscpack_conan_compname_package_requires_requirename_options_conditions) and
+transformed with [`string(MAKE_C_IDENTIFIER)`](https://cmake.org/cmake/help/latest/command/string.html#command:string) command.
+
+* Mandatory : NO
+* Default   : None
