@@ -22,16 +22,100 @@ Enable component packaging for CPackConan
 * Mandatory : NO
 * Default   : OFF
 
-### CPACK_CONAN_PACKAGE_NAME<br/>CPACK_CONAN_<compName>_PACKAGE_NAME
+### CPACK_CONAN_PACKAGE_NAME<br/>CPACK_CONAN_\<compName\>_PACKAGE_NAME
 
 The Conan package name.
 
 * Mandatory : YES
-* Default   : `CPACK_PACKAGE_NAME`
+* Default   : [`CPACK_PACKAGE_NAME`](https://cmake.org/cmake/help/latest/module/CPack.html#variable:CPACK_PACKAGE_NAME)
 
 ### CPACK_CONAN_PACKAGE_VERSION<br/>CPACK_CONAN_\<compName\>_PACKAGE_VERSION
 
-The Conan package version.
+The Conan package version. See [Conan version attribute](https://docs.conan.io/1/reference/conanfile/attributes.html#version) for more information.
 
 * Mandatory : YES
-* Default   : `CPACK_PACKAGE_VERSION`
+* Default   : [`CPACK_PACKAGE_VERSION`](https://cmake.org/cmake/help/latest/module/CPack.html#variable:CPACK_PACKAGE_VERSION)
+
+### CPACK_CONAN_PACKAGE_DESCRIPTION<br/>CPACK_CONAN_\<compName\>_PACKAGE_DESCRIPTION
+
+A long description of the package for UI display.
+
+* Mandatory : YES
+* Default   :
+    - [`CPACK_COMPONENT_<compName>_DESCRIPTION`](https://cmake.org/cmake/help/latest/module/CPackComponent.html#variable:CPACK_COMPONENT_%3CcompName%3E_DESCRIPTION),
+    - `CPACK_COMPONENT_GROUP_<groupName>_DESCRIPTION`,
+    - [`CPACK_PACKAGE_DESCRIPTION`](https://cmake.org/cmake/help/latest/module/CPack.html#variable:CPACK_PACKAGE_DESCRIPTION)
+
+### CPACK_CONAN_PACKAGE_LICENSE<br/>CPACK_CONAN_\<compName\>_PACKAGE_LICENSE
+
+A software package license custom string or a [SPDX license identifier](https://spdx.github.io/spdx-spec/SPDX-license-list) such as
+`MIT`, `BSD-3-Clause` or `LGPL-3.0-or-later`. See [Conan license attribute](https://docs.conan.io/1/reference/conanfile/attributes.html#license) for more information.
+
+* Mandatory : NO
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_AUTHOR<br/>CPACK_CONAN_\<compName\>_PACKAGE_AUTHOR
+
+Intended to add information about the author, in case it is different from the Conan user.
+It is possible that the Conan user is the name of an organization, project, company or group, 
+and many users have permissions over that account. In this case, the author information can 
+explicitly define who is the creator/maintainer of the package. 
+See [Conan author attribute](https://docs.conan.io/1/reference/conanfile/attributes.html#author) for more information. 
+
+* Mandatory : NO
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_TOPICS<br/>CPACK_CONAN_\<compName\>_PACKAGE_TOPICS
+
+A list of topics that describe the package and aid discoverability of packages through search and filtering.
+See [Conan topics attribute](https://docs.conan.io/1/reference/conanfile/attributes.html#topics) for more information.
+
+* Mandatory : NO
+* Default   : None
+ 
+### CPACK_CONAN_PACKAGE_GENERATORS<br/>CPACK_CONAN_\<compName\>_PACKAGE_GENERATORS
+
+A list of Conan generators that are used on `install` command in your project folder.
+Check the full [generators list](https://docs.conan.io/1/reference/generators.html#generators-reference).
+
+* Mandatory : YES
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_SETTINGS<br/>CPACK_CONAN_\<compName\>_PACKAGE_SETTINGS
+
+A list of Conan settings that a used by Conan to calculate the binary package id.
+See [Conan settings attribute](https://docs.conan.io/1/reference/conanfile/attributes.html#settings) for more information.
+
+* Mandatory : YES
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_REQUIRES<br/>CPACK_CONAN_\<compName\>_PACKAGE_REQUIRES
+
+A list of package dependencies. See [Conan requires attribute](https://docs.conan.io/1/reference/conanfile/attributes.html#requires) for more information.
+
+* Mandatory : NO
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>\_VERSION<br/>CPACK_CONAN_\<compName\>\_PACKAGE_REQUIRES\_\<requireName\>_VERSION
+
+A [version specification](https://docs.conan.io/1/reference/conanfile/attributes.html#version-ranges) for the particular dependency, where `<requireName>` 
+is an item of the [requires list](#cpack_conan_package_requirescpack_conan_compname_package_requires) transformed with [`string(MAKE_C_IDENTIFIER)`](https://cmake.org/cmake/help/latest/command/string.html#command:string) command.
+
+* Mandatory : NO
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>_OPTIONS<br/>CPACK\_CONAN\_\<compName\>\_PACKAGE_REQUIRES\_\<requireName\>_OPTIONS
+
+A list of option names for the particular dependency , where `<requireName>` is an item of the [requires list](#cpack_conan_package_requirescpack_conan_compname_package_requires) transformed with [`string(MAKE_C_IDENTIFIER)`](https://cmake.org/cmake/help/latest/command/string.html#command:string) command.
+
+* Mandatory : NO
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>\_OPTIONS\_\<optionName\><br/>CPACK_CONAN\_\<compName\>\_PACKAGE_REQUIRES_\<requireName\>\_OPTIONS\_\<optionName\>
+
+### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>_OPTIONS_CONDITIONS<br/>CPACK_CONAN\_\<compName\>\_PACKAGE_REQUIRES\_\<requireName\>_OPTIONS_CONDITIONS
+
+### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>\_OPTIONS_CONDITIONS_\<conditionName\><br/>CPACK_CONAN_\<compName\>\_PACKAGE_REQUIRES\_\<requireName\>\_OPTIONS_CONDITIONS\_\<conditionName\>
+
+### CPACK_CONAN_PACKAGE_REQUIRES_\<requireName\>\_OPTIONS\_\<optionName\>\_CONDITIONS\_\<conditionName\><br/>CPACK_CONAN_\<compName\>\_PACKAGE_REQUIRES\_\<requireName\>\_OPTIONS_\<optionName\>\_CONDITIONS\_\<conditionName\>
+
