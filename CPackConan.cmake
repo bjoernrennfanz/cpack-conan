@@ -69,6 +69,127 @@ function(_cpack_conan_setup_group_components _ignoreGroups)
   set(CPACK_CONAN_COMPONENTS "${CPACK_CONAN_COMPONENTS}" PARENT_SCOPE)
 endfunction()
 
+function(_cpack_conan_variable_fallback OUTPUT_VAR_NAME CONAN_VAR_NAME)
+  # Debug output of input parameters
+  if(ARGN)
+    list(JOIN ARGN "', '" _va_args)
+    set(_va_args ", ARGN: '${_va_args}'")
+  endif()
+  _cpack_conan_debug(
+    "_cpack_conan_variable_fallback: "
+    "OUTPUT_VAR_NAME='${OUTPUT_VAR_NAME}', "
+    "CONAN_VAR_NAME='${CONAN_VAR_NAME}'"
+    "${_va_args}"
+  )
+
+  # Parse arguments
+  cmake_parse_arguments(PARSE_ARGV 0 _args "" "" "FALLBACK_VARS")
+
+  # Make upper case name
+  if(CPACK_CONAN_PACKAGE_COMPONENT)
+    string(
+      TOUPPER "${CPACK_CONAN_PACKAGE_COMPONENT}"
+      CPACK_CONAN_PACKAGE_COMPONENT_UPPER
+    )
+  endif()
+
+  # Try possible variants
+  if(CPACK_CONAN_PACKAGE_COMPONENT AND NOT "${CPACK_CONAN_${CPACK_CONAN_PACKAGE_COMPONENT}_PACKAGE_${CONAN_VAR_NAME}}" STREQUAL "")
+    set(_result "${CPACK_CONAN_${CPACK_CONAN_PACKAGE_COMPONENT}_PACKAGE_${CONAN_VAR_NAME}}")
+    list(JOIN _result "\;" _result_str)
+    _cpack_conan_debug(
+      "  CPACK_CONAN_${CPACK_CONAN_PACKAGE_COMPONENT}_PACKAGE_${CONAN_VAR_NAME}: "
+      "OUTPUT_VAR_NAME->${OUTPUT_VAR_NAME}='${_result_str}'"
+    )
+  elseif(CPACK_CONAN_PACKAGE_COMPONENT_UPPER AND NOT "${CPACK_CONAN_${CPACK_CONAN_PACKAGE_COMPONENT_UPPER}_PACKAGE_${CONAN_VAR_NAME}}" STREQUAL "")
+    set(_result "${CPACK_CONAN_${CPACK_CONAN_PACKAGE_COMPONENT_UPPER}_PACKAGE_${CONAN_VAR_NAME}}")
+    list(JOIN _result "\;" _result_str)
+    _cpack_conan_debug(
+      "  CPACK_CONAN_${CPACK_CONAN_PACKAGE_COMPONENT_UPPER}_PACKAGE_${CONAN_VAR_NAME}: "
+      "OUTPUT_VAR_NAME->${OUTPUT_VAR_NAME}='${_result_str}'"
+    )
+  elseif(NOT "${CPACK_CONAN_PACKAGE_${CONAN_VAR_NAME}}" STREQUAL "")
+    set(_result "${CPACK_CONAN_PACKAGE_${CONAN_VAR_NAME}}")
+    list(JOIN _result "\;" _result_str)
+    _cpack_conan_debug(
+      "  CPACK_CONAN_PACKAGE_${CONAN_VAR_NAME}: "
+      "OUTPUT_VAR_NAME->${OUTPUT_VAR_NAME}=`${_result_str}`"
+    )
+  else()
+    foreach(_var IN LISTS _args_FALLBACK_VARS)
+      _cpack_conan_debug("  Fallback: ${_var} ...")
+      if(NOT "${_var}" STREQUAL "")
+        _cpack_conan_debug("            ${_var}=`${${_var}}`")
+        set(_result "${${_var}}")
+        list(JOIN _result ", " _result_str)
+        _cpack_conan_debug(
+          "  ${_var}: OUTPUT_VAR_NAME->${OUTPUT_VAR_NAME}=`${_result_str}`"
+        )
+        break()
+      endif()
+    endforeach()
+  endif()
+
+  set(${OUTPUT_VAR_NAME} "${_result}" PARENT_SCOPE)
+endfunction()
+
+function(_cpack_conan_setup_condition_requirements)
+  set(CPACK_CONAN_REQUIRES_CONDITIONS_HASHES "")
+  _cpack_conan_variable_fallback(_requires REQUIRES)
+  foreach(_require IN LISTS _requires)
+    # Convert to upper-case C identifier
+    string(MAKE_C_IDENTIFIER "${_require}" _require_up)
+    string(TOUPPER "${_require_up}" _require_up)
+    # Read possible conditions
+    _cpack_conan_variable_fallback(_conditions REQUIRES_${_require_up}_OPTIONS_CONDITIONS)
+    if(NOT "${_conditions}" STREQUAL "")
+      foreach(_condition IN LISTS _conditions)
+        # Convert to upper-case C identifier
+        string(MAKE_C_IDENTIFIER "${_condition}" _condition_up)
+        string(TOUPPER "${_condition_up}" _condition_up)
+        # Read condition python expression
+        _cpack_conan_variable_fallback(_condition_value REQUIRES_${_require_up}_OPTIONS_CONDITIONS_${_condition_up})
+        # Create hash of python expression for sorting
+        string(MD5 _condition_value_hash "${_condition_value}")
+        string(TOUPPER "${_condition_value_hash}" _condition_value_hash)
+        # Check if already in list
+        if (NOT "${_condition_value_hash}" IN_LIST CPACK_CONAN_REQUIRES_CONDITIONS_HASHES)
+          list(APPEND CPACK_CONAN_REQUIRES_CONDITIONS_HASHES "${_condition_value_hash}")
+          set(CPACK_CONAN_REQUIRES_${_condition_value_hash} "${_condition_value}")
+        endif()
+        _cpack_conan_variable_fallback(_options REQUIRES_${_require_up}_OPTIONS)
+        if(NOT "${_options}" STREQUAL "")
+          foreach(_option IN LISTS _options)
+            # Convert to upper-case C identifier
+            string(MAKE_C_IDENTIFIER "${_option}" _option_up)
+            string(TOUPPER "${_option_up}" _option_up)
+            _cpack_conan_variable_fallback(_option_value REQUIRES_${_require_up}_OPTIONS_${_option_up}_CONDITIONS_${_condition_up})
+            if(NOT "${_option_value}" STREQUAL "")
+              list(APPEND CPACK_CONAN_REQUIRES_${_condition_value_hash}_OPTION_REQUIRE "${_require}")
+              list(APPEND CPACK_CONAN_REQUIRES_${_condition_value_hash}_OPTION_NAMES "${_option}")
+              list(APPEND CPACK_CONAN_REQUIRES_${_condition_value_hash}_OPTION_VALUES "${_option_value}")
+            endif()
+          endforeach()
+        endif()
+      endforeach()
+    endif()
+  endforeach()
+
+  # Propagate variables to parent scope
+  _cpack_conan_debug_var(CPACK_CONAN_REQUIRES_CONDITIONS_HASHES)
+  set(CPACK_CONAN_REQUIRES_CONDITIONS_HASHES "${CPACK_CONAN_REQUIRES_CONDITIONS_HASHES}" PARENT_SCOPE)
+  foreach(_condition_hash IN LISTS CPACK_CONAN_REQUIRES_CONDITIONS_HASHES)
+    set(CPACK_CONAN_REQUIRES_${_condition_hash} "CPACK_CONAN_REQUIRES_${_condition_hash}" PARENT_SCOPE)
+    _cpack_conan_debug_var(CPACK_CONAN_REQUIRES_${_condition_hash})
+    set(CPACK_CONAN_REQUIRES_${_condition_hash}_OPTION_REQUIRE "${CPACK_CONAN_REQUIRES_${_condition_hash}_OPTION_REQUIRE}" PARENT_SCOPE)
+    _cpack_conan_debug_var(CPACK_CONAN_REQUIRES_${_condition_hash}_OPTION_REQUIRE)
+    set(CPACK_CONAN_REQUIRES_${_condition_hash}_OPTION_NAMES "${CPACK_CONAN_REQUIRES_${_condition_hash}_OPTION_NAMES}" PARENT_SCOPE)
+    _cpack_conan_debug_var(CPACK_CONAN_REQUIRES_${_condition_hash}_OPTION_NAMES)
+    set(CPACK_CONAN_REQUIRES_${_condition_hash}_OPTION_VALUES "${CPACK_CONAN_REQUIRES_${_condition_hash}_OPTION_VALUES}" PARENT_SCOPE)
+    _cpack_conan_debug_var(CPACK_CONAN_REQUIRES_${_condition_hash}_OPTION_VALUES)
+  endforeach()
+endfunction()
+
 # Are we in the component packaging case
 if(NOT CPACK_MONOLITHIC_INSTALL)
   if(CPACK_COMPONENTS_GROUPING STREQUAL "ALL_COMPONENTS_IN_ONE")
@@ -113,3 +234,11 @@ _cpack_conan_debug_var(CPACK_CONAN_COMPONENTS)
 _cpack_conan_debug_var(CPACK_CONAN_ALL_IN_ONE)
 _cpack_conan_debug_var(CPACK_CONAN_ORDINAL_MONOLITIC)
 _cpack_conan_debug("-----------------------------------")
+
+foreach(_component IN LISTS CPACK_CONAN_COMPONENTS)
+  set(CPACK_CONAN_PACKAGE_COMPONENT "${_component}")
+  _cpack_conan_setup_condition_requirements()
+endforeach()
+
+find_program(conanexecutable "conan")
+message(STATUS "${conanexecutable}")
