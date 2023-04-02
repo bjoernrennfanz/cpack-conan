@@ -63,7 +63,14 @@ explicitly define who is the creator/maintainer of the package.
 See [Conan author attribute](https://docs.conan.io/1/reference/conanfile/attributes.html#author) for more information. 
 
 * Mandatory : NO
-* Default   : None
+* Default   : [`CPACK_PACKAGE_VENDOR`](https://cmake.org/cmake/help/latest/module/CPack.html#variable:CPACK_PACKAGE_VENDOR)
+
+### CPACK_CONAN_PACKAGE_URL<br/>CPACK_CONAN_\<compName\>_PACKAGE_URL
+
+A URL for the package´s home page. See [Conan url attribute](https://docs.conan.io/1/reference/conanfile/attributes.html#url) for more information.
+
+* Mandatory : NO
+* Default   : [`CPACK_PACKAGE_HOMEPAGE_URL`](https://cmake.org/cmake/help/latest/module/CPack.html#variable:CPACK_PACKAGE_HOMEPAGE_URL)
 
 ### CPACK_CONAN_PACKAGE_TOPICS<br/>CPACK_CONAN_\<compName\>_PACKAGE_TOPICS
 
