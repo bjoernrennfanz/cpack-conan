@@ -231,7 +231,7 @@ endif()
 function(_cpack_conan_make_package_method)
   set(_method_lines "    def package(self):\n")
   foreach(_component IN LISTS ARGN)
-    string(APPEND _method_lines "        copy(self, '*', src='${_component}', symlinks=True)\n")
+    string(APPEND _method_lines "        copy(self, '*', src=os.path.join(self.source_folder, '${_component}'), dst=self.package_folder)\n")
   endforeach()
   string(APPEND _method_lines "\n")
   set(_CPACK_CONAN_PACKAGE_METHOD "${_method_lines}" PARENT_SCOPE)
@@ -401,13 +401,14 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
     FALLBACK_VARS
       CPACK_PACKAGE_HOMEPAGE_URL
   )
-  _cpack_conan_variable_fallback(
-    CPACK_CONAN_PACKAGE_LICENSE LICENSE
-  )
+  _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_LICENSE LICENSE)
+  _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_SETTINGS SETTINGS)
+  _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_GENERATORS GENERATORS)
 
   # Generate class name
   _cpack_conan_generate_class_name(CPACK_CONAN_PACKAGE_CLASS "${CPACK_CONAN_PACKAGE_NAME}")
 
+  string(APPEND _conanfile_py "import os\n")
   string(APPEND _conanfile_py "from conan import ConanFile\n")
   string(APPEND _conanfile_py "from conan.tools.files import copy\n")
 
@@ -419,7 +420,6 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
   endif()
   if(CPACK_CONAN_PACKAGE_TOPICS)
     list(JOIN CPACK_CONAN_PACKAGE_TOPICS "', '" _CPACK_CONAN_PACKAGE_TOPICS_ITEM_STR)
-    string(APPEND _CPACK_CONAN_PACKAGE_TOPICS_STR "${_CPACK_CONAN_PACKAGE_TOPICS_ITEM_STR}")
     string(APPEND _conanfile_py "    topics = ('${_CPACK_CONAN_PACKAGE_TOPICS_ITEM_STR}')\n")
   endif()
   if (CPACK_CONAN_PACKAGE_URL)
@@ -428,8 +428,11 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
   if (CPACK_CONAN_PACKAGE_LICENSE)
     string(APPEND _conanfile_py "    license = '${CPACK_CONAN_PACKAGE_LICENSE}'\n")
   endif()
-  string(APPEND _conanfile_py "    settings = 'os', 'compiler', 'build_type', 'arch'\n")
-  string(APPEND _conanfile_py "    generators = 'cmake_find_package', 'cmake_paths', 'cmake', 'vtoolcreator_buildinfo_env'\n")
+
+  list(JOIN CPACK_CONAN_PACKAGE_SETTINGS "', '" _CPACK_CONAN_PACKAGE_SETTINGS_STR)
+  string(APPEND _conanfile_py "    settings = '${_CPACK_CONAN_PACKAGE_SETTINGS_STR}'\n")
+  list(JOIN CPACK_CONAN_PACKAGE_GENERATORS "', '" _CPACK_CONAN_PACKAGE_GENERATORS_STR)
+  string(APPEND _conanfile_py "    generators = '${_CPACK_CONAN_PACKAGE_GENERATORS_STR}'\n")
   string(APPEND _conanfile_py "    version = '${CPACK_CONAN_PACKAGE_VERSION} '\n\n")
 
   if (_CPACK_CONAN_CONFIGURE_METHOD)
@@ -471,6 +474,14 @@ if(NOT CONAN_EXECUTABLE)
   message(FATAL_ERROR "Conan executable not found")
 endif()
 
+if(CPACK_CONAN_TOOL_SETTINGS)
+  set(CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS)
+  foreach(_setting IN LISTS CPACK_CONAN_TOOL_SETTINGS)
+    list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS "--settings")
+    list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS "${_setting}")
+  endforeach()
+endif()
+
 if(CPACK_CONAN_ORDINAL_MONOLITIC)
   # Meaning to pack all installed files into a single package
   _cpack_conan_debug("---[Making an ordinal monolitic package]---")
@@ -482,6 +493,14 @@ elseif(CPACK_CONAN_ALL_IN_ONE)
   _cpack_conan_make_configure_method(${CPACK_CONAN_COMPONENTS})
   _cpack_conan_make_requirements_method(${CPACK_CONAN_COMPONENTS})
   _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
+  if(CPACK_CONAN_PACKAGE_DEBUG)
+    LIST(JOIN CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS " " CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING)
+    _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING}")
+  endif()
+  execute_process(
+    COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS}
+    WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+  )
 else()
   # First build grouped components
   if(CPACK_CONAN_GROUPS)
@@ -501,6 +520,14 @@ else()
       set(CPACK_CONAN_PACKAGE_COMPONENT ${_group})
       _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
       unset(CPACK_CONAN_PACKAGE_COMPONENT)
+      if(CPACK_CONAN_PACKAGE_DEBUG)
+        LIST(JOIN CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS " " CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING)
+        _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING}")
+      endif()
+      execute_process(
+        COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS}
+        WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+      )
     endforeach()
   endif()
   # Second build single components
@@ -518,8 +545,15 @@ else()
       # component name to properly collect various per component settings
       set(CPACK_CONAN_PACKAGE_COMPONENT ${_component})
       _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
-      _cpack_conan_debug_var(_CPACK_CONAN_CONANFILE)
       unset(CPACK_CONAN_PACKAGE_COMPONENT)
+      if(CPACK_CONAN_PACKAGE_DEBUG)
+        LIST(JOIN CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS " " CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING)
+        _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING}")
+      endif()
+      execute_process(
+        COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS}
+        WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+      )
     endforeach()
   endif()
 endif()
