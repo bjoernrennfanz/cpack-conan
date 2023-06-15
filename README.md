@@ -162,3 +162,10 @@ transformed with [`string(MAKE_C_IDENTIFIER)`](https://cmake.org/cmake/help/late
 
 * Mandatory : NO
 * Default   : None
+
+### CPACK_CONAN_PACKAGE_REFERENCE<br/>CPACK_CONAN_\<compName\>_PACKAGE_REFERENCE
+
+The user/channel of the generated package. See [Conan export-pkg command](https://docs.conan.io/1/reference/commands/creator/export-pkg.html) for more information.
+
+* Mandatory : NO
+* Default   : None
