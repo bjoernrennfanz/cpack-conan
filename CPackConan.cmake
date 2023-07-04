@@ -289,7 +289,6 @@ function(_cpack_conan_make_configure_method)
     foreach(_condition_hash IN LISTS _CPACK_CONAN_REQUIRES_CONDITIONS_HASHES)
       _cpack_conan_debug_var(CPACK_CONAN_REQUIRES_${_condition_hash})
       if (NOT _first_condition)
-        message("Test: ${CPACK_CONAN_REQUIRES_${_condition_hash}}")
         string(APPEND _method_lines "        if ${CPACK_CONAN_REQUIRES_${_condition_hash}}:\n")
         set(_first_condition TRUE)
       else()
@@ -433,7 +432,7 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
   string(APPEND _conanfile_py "    settings = '${_CPACK_CONAN_PACKAGE_SETTINGS_STR}'\n")
   list(JOIN CPACK_CONAN_PACKAGE_GENERATORS "', '" _CPACK_CONAN_PACKAGE_GENERATORS_STR)
   string(APPEND _conanfile_py "    generators = '${_CPACK_CONAN_PACKAGE_GENERATORS_STR}'\n")
-  string(APPEND _conanfile_py "    version = '${CPACK_CONAN_PACKAGE_VERSION} '\n\n")
+  string(APPEND _conanfile_py "    version = '${CPACK_CONAN_PACKAGE_VERSION}'\n\n")
 
   if (_CPACK_CONAN_CONFIGURE_METHOD)
     string(APPEND _conanfile_py "${_CPACK_CONAN_CONFIGURE_METHOD}\n")
@@ -444,7 +443,11 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
   string(APPEND _conanfile_py "${_CPACK_CONAN_PACKAGE_METHOD}\n")
 
   _cpack_conan_debug("Create '${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py' file...")
-  file(WRITE "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py" "${_conanfile_py}")
+  file(CONFIGURE
+    OUTPUT "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py"
+    CONTENT "${_conanfile_py}" @ONLY
+    NEWLINE_STYLE LF
+  )
   set(${CONAN_PACKAGE_CONANFILE_PY} "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py" PARENT_SCOPE)
 endfunction()
 
@@ -493,12 +496,15 @@ elseif(CPACK_CONAN_ALL_IN_ONE)
   _cpack_conan_make_configure_method(${CPACK_CONAN_COMPONENTS})
   _cpack_conan_make_requirements_method(${CPACK_CONAN_COMPONENTS})
   _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
+  _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_REFERENCE REFERENCE)
+  set(CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_PACKAGE_REFERENCE})
+  list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS})
   if(CPACK_CONAN_PACKAGE_DEBUG)
-    LIST(JOIN CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS " " CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING)
-    _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING}")
+    list(JOIN CPACK_CONAN_TOOL_COMMANDLINE_ARGS " " CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING)
+    _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING}")
   endif()
   execute_process(
-    COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS}
+    COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
     WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
   )
 else()
@@ -519,13 +525,16 @@ else()
       # to properly collect various per group settings
       set(CPACK_CONAN_PACKAGE_COMPONENT ${_group})
       _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
+      _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_REFERENCE REFERENCE)
       unset(CPACK_CONAN_PACKAGE_COMPONENT)
+      set(CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_PACKAGE_REFERENCE})
+      list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS})
       if(CPACK_CONAN_PACKAGE_DEBUG)
-        LIST(JOIN CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS " " CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING)
-        _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING}")
+        list(JOIN CPACK_CONAN_TOOL_COMMANDLINE_ARGS " " CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING)
+        _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING}")
       endif()
       execute_process(
-        COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS}
+        COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
         WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
       )
     endforeach()
@@ -545,13 +554,16 @@ else()
       # component name to properly collect various per component settings
       set(CPACK_CONAN_PACKAGE_COMPONENT ${_component})
       _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
+      _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_REFERENCE REFERENCE)
       unset(CPACK_CONAN_PACKAGE_COMPONENT)
+      set(CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_PACKAGE_REFERENCE})
+      list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS})
       if(CPACK_CONAN_PACKAGE_DEBUG)
-        LIST(JOIN CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS " " CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING)
-        _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS_STRING}")
+        list(JOIN CPACK_CONAN_TOOL_COMMANDLINE_ARGS " " CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING)
+        _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING}")
       endif()
       execute_process(
-        COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS}
+        COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
         WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
       )
     endforeach()
