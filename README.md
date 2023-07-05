@@ -173,7 +173,8 @@ The user/channel of the generated package. See [Conan export-pkg command](https:
 ### CPACK_CONAN_EXTERNAL_PRE_PACKAGE_SCRIPT
 
 This variable can optionally specify the full path to a CMake script file to be run as a pre-package step in the CPack invocation. 
-It is invoked before the packaging took place and may run external tools. The script has access to the variables defined by the CPack config file.
+It is invoked before the packaging took place and may run external tools. The script has access to the variables defined by the CPack config file,
+additionally the `CPACK_CONAN_PACKAGE_COMPONENTS` variable contains the currently processed components.
 
 * Mandatory : NO
 * Default   : None
@@ -181,7 +182,8 @@ It is invoked before the packaging took place and may run external tools. The sc
 ### CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT
 
 This variable can optionally specify the full path to a CMake script file to be run as a post-package step in the CPack invocation. 
-It is invoked after the packaging took place and may run external tools. The script has access to the variables defined by the CPack config file.
+It is invoked after the packaging took place and may run external tools. The script has access to the variables defined by the CPack config file,
+additionally the `CPACK_CONAN_PACKAGE_COMPONENTS` variable contains the currently processed components.
 
 * Mandatory : NO
 * Default   : None
