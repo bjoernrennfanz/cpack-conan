@@ -169,3 +169,48 @@ The user/channel of the generated package. See [Conan export-pkg command](https:
 
 * Mandatory : NO
 * Default   : None
+
+### CPACK_CONAN_SKIP_EXPORT<br/>CPACK_CONAN_\<compName\>_SKIP_EXPORT
+
+Skips the conan export step. The conan files will be generated for later use.
+
+* Mandatory : NO
+* Default   : OFF
+
+### CPACK_CONAN_EXPORT_PACKAGE_GENERATION_INFO
+
+Store the package generation info and generated conan files to generate the conan packages at a later point.
+A uniquely named directory is created inside the CPACK_PACKAGE_DIRECTORY. It contains all generated conan files and
+a file named "package_generation_info.json". 
+
+* Mandatory : NO
+* Default   : OFF
+
+#### Format of package_generation_info.json
+
+The file may contain multiple fields at the top level. One per component/group contained in the generated package. The
+fields are named after the respective component. A component contains three fields:
+* ConanFile: The name of the conan file used to create the package.
+* Archive: The name of the archive containing the package contents.
+* CmdArgs: The list of command line arguments for the conan export command.
+Example:
+```json
+{
+    "Adapters":
+    {
+      "ConanFile": "VtoolCreatorAdapters.py",
+      "Archive": "VToolCreatorAdapters-0.9.0.65432-snapshot-darwin-x86_64",
+      "CmdArgs": ["snapshot/potentially-public","--settings","build_type=Release","--settings","compiler=apple-clang","--settings","compiler.version=13","--settings","compiler.libcxx=libc++","--settings","arch=x86_64"]
+    }
+}
+```
+To export the conan package at a later point you have to iterate over all components in the file, unpack the archive
+into a folder that has the same name as the component, place the conan file next to this folder and call:
+```bash
+conan export-pkg --force [ConanFile] [CmdArgsStr]
+```
+Replace ConanFile with the path to the conan file and CmdArgsStr with all elements of CmdArgs joined with a space.
+Example:
+```bash
+conan export-pkg --force  VtoolCreatorAdapters.py snapshot/potentially-public --settings build_type=Release --settings compiler=apple-clang --settings compiler.version=13 --settings compiler.libcxx=libc++ --settings arch=x86_64
+```

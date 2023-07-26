@@ -443,12 +443,28 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
   string(APPEND _conanfile_py "${_CPACK_CONAN_PACKAGE_METHOD}\n")
 
   _cpack_conan_debug("Create '${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py' file...")
+  
+  # Use CONFIGURE instead of WRITE to be able to set NEWLINE_STYLE.
   file(CONFIGURE
     OUTPUT "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py"
     CONTENT "${_conanfile_py}" @ONLY
     NEWLINE_STYLE LF
   )
   set(${CONAN_PACKAGE_CONANFILE_PY} "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py" PARENT_SCOPE)
+endfunction()
+
+function(_cpack_conan_component_conan_info NAME CONAN_FILE ARCHIVE_FILE CMD_ARGS OUTPUT_VAR)
+  list(JOIN CMD_ARGS "\",\"" _CMD_ARG_STR)
+  string(PREPEND _CMD_ARG_STR "[\"")
+  string(APPEND _CMD_ARG_STR "\"]")
+  set(${OUTPUT_VAR} "    \"${NAME}\":
+    {
+      \"ConanFile\": \"${CONAN_FILE}\",
+      \"Archive\": \"${ARCHIVE_FILE}\",
+      \"CmdArgs\": ${_CMD_ARG_STR}
+    }"
+    PARENT_SCOPE
+  )
 endfunction()
 
 # Print some debug info
@@ -485,10 +501,14 @@ if(CPACK_CONAN_TOOL_SETTINGS)
   endforeach()
 endif()
 
+set(_components_generation_info)
 if(CPACK_CONAN_ORDINAL_MONOLITIC)
   # Meaning to pack all installed files into a single package
   _cpack_conan_debug("---[Making an ordinal monolitic package]---")
   _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
+  get_filename_component(_conan_file ${_CPACK_CONAN_CONANFILE} NAME)
+  _cpack_conan_component_conan_info(${CPACK_PACKAGE_NAME} ${_conan_file} ${CPACK_ARCHIVE_FILE_NAME} "${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}" _COMPONENT_CONAN_INFO)
+  list(APPEND _components_generation_info ${_COMPONENT_CONAN_INFO})
 elseif(CPACK_CONAN_ALL_IN_ONE)
   # Meaning to pack all installed components into a single package
   _cpack_conan_debug("---[Making a monolitic package from installed components]---")
@@ -499,14 +519,23 @@ elseif(CPACK_CONAN_ALL_IN_ONE)
   _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_REFERENCE REFERENCE)
   set(CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_PACKAGE_REFERENCE})
   list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS})
-  if(CPACK_CONAN_PACKAGE_DEBUG)
-    list(JOIN CPACK_CONAN_TOOL_COMMANDLINE_ARGS " " CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING)
-    _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING}")
+  list(JOIN CPACK_CONAN_TOOL_COMMANDLINE_ARGS " " CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING)
+  # Create conan generation info
+  get_filename_component(_conan_file ${_CPACK_CONAN_CONANFILE} NAME)
+  _cpack_conan_component_conan_info(${CPACK_PACKAGE_NAME} ${_conan_file} ${CPACK_ARCHIVE_FILE_NAME} "${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}" _COMPONENT_CONAN_INFO)
+  list(APPEND _components_generation_info ${_COMPONENT_CONAN_INFO})
+  # Set CPACK_CONAN_SKIP_EXPORT to skip conan export and only generate the conan file.
+  if(NOT CPACK_CONAN_SKIP_EXPORT)
+    if(CPACK_CONAN_PACKAGE_DEBUG)
+      _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING}")
+    endif()
+    execute_process(
+      COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
+      WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+    )
+  else()
+    message("CPack: Skip conan export.")
   endif()
-  execute_process(
-    COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
-    WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
-  )
 else()
   # First build grouped components
   if(CPACK_CONAN_GROUPS)
@@ -529,14 +558,30 @@ else()
       unset(CPACK_CONAN_PACKAGE_COMPONENT)
       set(CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_PACKAGE_REFERENCE})
       list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS})
-      if(CPACK_CONAN_PACKAGE_DEBUG)
-        list(JOIN CPACK_CONAN_TOOL_COMMANDLINE_ARGS " " CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING)
-        _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING}")
+      list(JOIN CPACK_CONAN_TOOL_COMMANDLINE_ARGS " " CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING)
+      string(TOUPPER ${_group} _GROUP_UPPER)
+      # Get archive file name
+      if(CPACK_${_GROUP_UPPER}_ARCHIVE_FILE_NAME)
+        set(_archive_file ${CPACK_${_GROUP_UPPER}_ARCHIVE_FILE_NAME})
+      else()
+        set(_archive_file ${CPACK__ARCHIVE_FILE_NAME})
       endif()
-      execute_process(
-        COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
-        WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
-      )
+      # Create conan generation info
+      get_filename_component(_conan_file ${_CPACK_CONAN_CONANFILE} NAME)
+      _cpack_conan_component_conan_info(${_group} ${_conan_file} ${_archive_file} "${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}" _COMPONENT_CONAN_INFO)
+      list(APPEND _components_generation_info ${_COMPONENT_CONAN_INFO})
+      # Set CPACK_CONAN_SKIP_EXPORT or CPACK_CONAN_<GROUP>_SKIP_EXPORT to skip conan export and only generate the conan file.
+      if(NOT CPACK_CONAN_${_GROUP_UPPER}_SKIP_EXPORT AND NOT CPACK_CONAN_SKIP_EXPORT)
+        if(CPACK_CONAN_PACKAGE_DEBUG)
+          _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING}")
+        endif()
+        execute_process(
+          COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
+          WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+        )
+      else()
+        message("CPack: Skip conan export for group ${_group}.")
+      endif()
     endforeach()
   endif()
   # Second build single components
@@ -558,14 +603,61 @@ else()
       unset(CPACK_CONAN_PACKAGE_COMPONENT)
       set(CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_PACKAGE_REFERENCE})
       list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS})
-      if(CPACK_CONAN_PACKAGE_DEBUG)
-        list(JOIN CPACK_CONAN_TOOL_COMMANDLINE_ARGS " " CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING)
-        _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING}")
+      list(JOIN CPACK_CONAN_TOOL_COMMANDLINE_ARGS " " CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING)
+      string(TOUPPER ${_component} _COMPONENT_UPPER)
+      # Get archive file name
+      if(CPACK_ARCHIVE_${_COMPONENT_UPPER}_FILE_NAME)
+        set(_archive_file ${CPACK_ARCHIVE_${_COMPONENT_UPPER}_FILE_NAME})
+      else()
+        set(_archive_file ${CPACK_ARCHIVE_FILE_NAME})
       endif()
-      execute_process(
-        COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
-        WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
-      )
+      # Create conan generation info
+      get_filename_component(_conan_file ${_CPACK_CONAN_CONANFILE} NAME)
+      _cpack_conan_component_conan_info(${_component} ${_conan_file} ${_archive_file} "${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}" _COMPONENT_CONAN_INFO)
+      list(APPEND _components_generation_info ${_COMPONENT_CONAN_INFO})
+      # Set CPACK_CONAN_SKIP_EXPORT or CPACK_CONAN_<COMPONENT>_SKIP_EXPORT to skip conan export and only generate the conan file.
+      if(NOT CPACK_CONAN_${_COMPONENT_UPPER}_SKIP_EXPORT AND NOT CPACK_CONAN_SKIP_EXPORT)
+        if(CPACK_CONAN_PACKAGE_DEBUG)
+          _cpack_conan_debug("Executing: ${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS_STRING}")
+        endif()
+        execute_process(
+          COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
+          WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+        )
+      else()
+        message("CPack: Skip conan export for component ${_component}.")
+      endif()
     endforeach()
+
   endif()
+endif()
+
+# If CPACK_CONAN_EXPORT_PACKAGE_GENERATION_INFO is set, the package generation info is written to
+# package_generation_info.json. This file and all conan files will be copied to the cpack temporary dir.
+if(CPACK_CONAN_EXPORT_PACKAGE_GENERATION_INFO)
+  # Generate package info file and write it to output directory.
+  set(_package_generation_info_json "{\n")
+  list(LENGTH _components_generation_info _num_components)
+  set(_index "1")
+  foreach(_gen_info IN LISTS _components_generation_info)
+    string(APPEND _package_generation_info_json ${_gen_info})
+    if(_index LESS _num_components)
+      string(APPEND _package_generation_info_json ",\n")
+    endif()
+    MATH(EXPR _index "${_index}+1")
+  endforeach()
+  string(APPEND _package_generation_info_json "\n}")
+  string(SHA256 _INFO_HASH "${_package_generation_info_json}")
+  set(_OUTPUT_DIR "${CPACK_PACKAGE_DIRECTORY}/${_INFO_HASH}")
+
+  # Use CONFIGURE instead of WRITE to be able to set NEWLINE_STYLE.
+  file(CONFIGURE
+    OUTPUT "${_OUTPUT_DIR}/package_generation_info.json"
+    CONTENT "${_package_generation_info_json}" @ONLY
+    NEWLINE_STYLE LF
+  )
+
+  # Copy all conan files to output directory.
+  file(GLOB _all_conan_files "${CPACK_TEMPORARY_DIRECTORY}/*.py")
+  file(COPY ${_all_conan_files} DESTINATION ${_OUTPUT_DIR})
 endif()
