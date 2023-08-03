@@ -529,8 +529,8 @@ else()
       unset(_CPACK_CONAN_PACKAGE_METHOD)
       unset(_CPACK_CONAN_CONFIGURE_METHOD)
       _cpack_conan_make_package_method(${CPACK_CONAN_${_group_up}_GROUP_COMPONENTS})
-      _cpack_conan_make_configure_method(${CPACK_CONAN_${_group_up}_GROUP_COMPONENTS})
-      _cpack_conan_make_requirements_method(${CPACK_CONAN_${_group_up}_GROUP_COMPONENTS})
+      _cpack_conan_make_configure_method(${_group})
+      _cpack_conan_make_requirements_method(${_group})
       # Temporary set 'CPACK_CONAN_PACKAGE_COMPONENT' to the group name
       # to properly collect various per group settings
       set(CPACK_CONAN_PACKAGE_COMPONENT ${_group})
