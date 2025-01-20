@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023 Björn Rennfanz
+# Copyright (c) 2023-2025 Björn Rennfanz
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -512,7 +512,14 @@ elseif(CPACK_CONAN_ALL_IN_ONE)
   execute_process(
     COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
     WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+    ERROR_VARIABLE _CPACK_CONAN_CMD_ERROR
+    RESULT_VARIABLE _CPACK_CONAN_CMD_EXIT_CODE
   )
+  if(NOT ${_CPACK_CONAN_CMD_EXIT_CODE} EQUAL 0)
+    set(_CPACK_CONAN_CMD_ERROR_MSG "Command \"${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with")
+    set(_CPACK_CONAN_CMD_ERROR_MSG "${_CPACK_CONAN_CMD_ERROR_MSG} output:\n${_CPACK_CONAN_CMD_ERROR}")
+    message(FATAL_ERROR "${_CPACK_CONAN_CMD_ERROR_MSG}")
+  endif()
   if(CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT)
     include("${CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT}")
   endif()
@@ -550,7 +557,14 @@ else()
       execute_process(
         COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
         WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+        ERROR_VARIABLE _CPACK_CONAN_CMD_ERROR
+        RESULT_VARIABLE _CPACK_CONAN_CMD_EXIT_CODE
       )
+      if(NOT ${_CPACK_CONAN_CMD_EXIT_CODE} EQUAL 0)
+        set(_CPACK_CONAN_CMD_ERROR_MSG "Command \"${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with")
+        set(_CPACK_CONAN_CMD_ERROR_MSG "${_CPACK_CONAN_CMD_ERROR_MSG} output:\n${_CPACK_CONAN_CMD_ERROR}")
+        message(FATAL_ERROR "${_CPACK_CONAN_CMD_ERROR_MSG}")
+      endif()
       if(CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT)
         include("${CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT}")
       endif()
@@ -587,7 +601,14 @@ else()
       execute_process(
         COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
         WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+        ERROR_VARIABLE _CPACK_CONAN_CMD_ERROR
+        RESULT_VARIABLE _CPACK_CONAN_CMD_EXIT_CODE
       )
+      if(NOT ${_CPACK_CONAN_CMD_EXIT_CODE} EQUAL 0)
+        set(_CPACK_CONAN_CMD_ERROR_MSG "Command \"${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with")
+        set(_CPACK_CONAN_CMD_ERROR_MSG "${_CPACK_CONAN_CMD_ERROR_MSG} output:\n${_CPACK_CONAN_CMD_ERROR}")
+        message(FATAL_ERROR "${_CPACK_CONAN_CMD_ERROR_MSG}")
+      endif()
       if(CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT)
         include("${CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT}")
       endif()
