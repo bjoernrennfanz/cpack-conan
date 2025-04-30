@@ -22,13 +22,27 @@ Enable component packaging for CPackConan
 * Mandatory : NO
 * Default   : OFF
 
+### CPACK_CONAN_TOOL_EXECUTABLE
+
+The path to the Conan tool executable. This replaces the default (automatically found on the host machine).
+
+* Mandatory : NO  
+* Default   : Automatically detected  
+
+### CPACK_CONAN_TOOL_FLAGS
+
+Extra flags to give to the Conan executable.
+
+* Mandatory : NO  
+* Default   : None  
+
 ### CPACK_CONAN_TOOL_SETTINGS
 
 Settings that needed to build the package, overwriting the defaults (host machine).
 See [Conan export-pkg command](https://docs.conan.io/1/reference/commands/creator/export-pkg.html) for more information.
 
 * Mandatory : YES
-* Default: None
+* Default   : None
 
 ### CPACK_CONAN_PACKAGE_NAME<br/>CPACK_CONAN_\<compName\>_PACKAGE_NAME
 
