@@ -201,3 +201,17 @@ additionally the `CPACK_CONAN_PACKAGE_COMPONENTS` variable contains the currentl
 
 * Mandatory : NO
 * Default   : None
+
+### CPACK_CONAN_PACKAGE_ADDITIONAL_PYTHON_IMPORTS <br/>CPACK_CONAN_\<compName\>_PACKAGE_ADDITIONAL_PYTHON_IMPORTS
+
+This variable can optionally contain additional import declarations that are inserted into the generated conanfile.py.
+
+* Mandatory : NO
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_ADDITIONAL_PYTHON_SCRIPT <br/>CPACK_CONAN_\<compName\>_PACKAGE_ADDITIONAL_PYTHON_SCRIPT
+
+This variable can optionally contain additional python code that are inserted into the generated conanfile.py at the end.
+
+* Mandatory : NO
+* Default   : None
