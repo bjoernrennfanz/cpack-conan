@@ -231,7 +231,7 @@ endif()
 function(_cpack_conan_make_package_method)
   set(_method_lines "    def package(self):\n")
   foreach(_component IN LISTS ARGN)
-    string(APPEND _method_lines "        copy(self, '*', src=os.path.join(self.source_folder, '${_component}'), dst=self.package_folder)\n")
+    string(APPEND _method_lines "        copy(self, '*', src=os.path.join(self.source_folder, '..', '${_component}'), dst=self.package_folder)\n")
   endforeach()
   set(_CPACK_CONAN_PACKAGE_METHOD "${_method_lines}" PARENT_SCOPE)
 endfunction()
@@ -406,6 +406,7 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
   _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_GENERATORS GENERATORS)
   _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_ADDITIONAL_PYTHON_IMPORTS ADDITIONAL_PYTHON_IMPORTS)
   _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_ADDITIONAL_PYTHON_SCRIPT ADDITIONAL_PYTHON_SCRIPT)
+  _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_TEST_PACKAGE_FILES TEST_PACKAGE_FILES)
 
   # Generate class name
   _cpack_conan_generate_class_name(CPACK_CONAN_PACKAGE_CLASS "${CPACK_CONAN_PACKAGE_NAME}")
@@ -457,13 +458,21 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
     endforeach()
   endif()
 
-  _cpack_conan_debug("Create '${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py' file...")
+  _cpack_conan_debug("Create '${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}Conan/conanfile.py' file...")
   file(CONFIGURE
-    OUTPUT "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py"
+    OUTPUT "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}Conan/conanfile.py"
     CONTENT "${_conanfile_py}" @ONLY
     NEWLINE_STYLE LF
   )
-  set(${CONAN_PACKAGE_CONANFILE_PY} "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}.py" PARENT_SCOPE)
+
+  if (CPACK_CONAN_PACKAGE_TEST_PACKAGE_FILES)
+    foreach(_test_package_file IN LISTS CPACK_CONAN_PACKAGE_TEST_PACKAGE_FILES)
+      _cpack_conan_debug("Copy test package file '${_test_package_file}' to conan package...")
+      file(COPY "${_test_package_file}" DESTINATION "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}Conan/test_package")
+    endforeach()
+  endif()
+
+  set(${CONAN_PACKAGE_CONANFILE_PY} "${CPACK_TEMPORARY_DIRECTORY}/${CPACK_CONAN_PACKAGE_CLASS}Conan/conanfile.py" PARENT_SCOPE)
 endfunction()
 
 # Print some debug info
@@ -560,13 +569,10 @@ elseif(CPACK_CONAN_ALL_IN_ONE)
   execute_process(
     COMMAND "${CPACK_CONAN_TOOL_EXECUTABLE}" export-pkg ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
     WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
-    ERROR_VARIABLE _CPACK_CONAN_CMD_ERROR
     RESULT_VARIABLE _CPACK_CONAN_CMD_EXIT_CODE
   )
   if(NOT ${_CPACK_CONAN_CMD_EXIT_CODE} EQUAL 0)
-    set(_CPACK_CONAN_CMD_ERROR_MSG "Command \"${CONAN_EXECUTABLE} export-pkg ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with")
-    set(_CPACK_CONAN_CMD_ERROR_MSG "${_CPACK_CONAN_CMD_ERROR_MSG} output:\n${_CPACK_CONAN_CMD_ERROR}")
-    message(FATAL_ERROR "${_CPACK_CONAN_CMD_ERROR_MSG}")
+    message(FATAL_ERROR "Command \"${CPACK_CONAN_TOOL_EXECUTABLE} export-pkg ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with ${_CPACK_CONAN_CMD_EXIT_CODE}")
   endif()
   if(CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT)
     include("${CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT}")
@@ -614,13 +620,10 @@ else()
       execute_process(
         COMMAND "${CPACK_CONAN_TOOL_EXECUTABLE}" export-pkg ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
         WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
-        ERROR_VARIABLE _CPACK_CONAN_CMD_ERROR
         RESULT_VARIABLE _CPACK_CONAN_CMD_EXIT_CODE
       )
       if(NOT ${_CPACK_CONAN_CMD_EXIT_CODE} EQUAL 0)
-        set(_CPACK_CONAN_CMD_ERROR_MSG "Command \"${CONAN_EXECUTABLE} export-pkg ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with")
-        set(_CPACK_CONAN_CMD_ERROR_MSG "${_CPACK_CONAN_CMD_ERROR_MSG} output:\n${_CPACK_CONAN_CMD_ERROR}")
-        message(FATAL_ERROR "${_CPACK_CONAN_CMD_ERROR_MSG}")
+        message(FATAL_ERROR "Command \"${CPACK_CONAN_TOOL_EXECUTABLE} export-pkg ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with ${_CPACK_CONAN_CMD_EXIT_CODE}")
       endif()
       if(CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT)
         include("${CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT}")
@@ -667,13 +670,10 @@ else()
       execute_process(
         COMMAND "${CPACK_CONAN_TOOL_EXECUTABLE}" export-pkg ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
         WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
-        ERROR_VARIABLE _CPACK_CONAN_CMD_ERROR
         RESULT_VARIABLE _CPACK_CONAN_CMD_EXIT_CODE
       )
       if(NOT ${_CPACK_CONAN_CMD_EXIT_CODE} EQUAL 0)
-        set(_CPACK_CONAN_CMD_ERROR_MSG "Command \"${CONAN_EXECUTABLE} export-pkg ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with")
-        set(_CPACK_CONAN_CMD_ERROR_MSG "${_CPACK_CONAN_CMD_ERROR_MSG} output:\n${_CPACK_CONAN_CMD_ERROR}")
-        message(FATAL_ERROR "${_CPACK_CONAN_CMD_ERROR_MSG}")
+        message(FATAL_ERROR "Command \"${CPACK_CONAN_TOOL_EXECUTABLE} export-pkg ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with ${_CPACK_CONAN_CMD_EXIT_CODE}")
       endif()
       if(CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT)
         include("${CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT}")

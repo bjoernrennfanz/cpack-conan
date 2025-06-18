@@ -215,3 +215,10 @@ This variable can optionally contain additional python code that are inserted in
 
 * Mandatory : NO
 * Default   : None
+
+### CPACK_CONAN_PACKAGE_TEST_PACKAGE_FILES <br/>CPACK_CONAN_\<compName\>_PACKAGE_TEST_PACKAGE_FILES
+
+This variable can optionally contain a list of files that are copied to the test package folder.
+
+* Mandatory : NO
+* Default   : None
