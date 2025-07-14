@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023 Björn Rennfanz
+# Copyright (c) 2023-2025 Björn Rennfanz
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -238,6 +238,7 @@ function(_cpack_conan_make_package_method)
 endfunction()
 
 function(_cpack_conan_make_configure_method)
+  unset(_first_require)
   set(_CPACK_CONAN_REQUIRES_CONDITIONS_HASHES)
   foreach(_component IN LISTS ARGN)
     # Temporary set 'CPACK_CONAN_PACKAGE_COMPONENT' to the current
@@ -245,10 +246,6 @@ function(_cpack_conan_make_configure_method)
     set(CPACK_CONAN_PACKAGE_COMPONENT ${_component})
     _cpack_conan_variable_fallback(_requires REQUIRES)
     foreach(_require IN LISTS _requires)
-      if (NOT _first_require)
-        set(_method_lines "    def configure(self):\n")
-        set(_first_require TRUE)
-      endif()
       # Convert to upper-case C identifier
       string(MAKE_C_IDENTIFIER "${_require}" _require_up)
       string(TOUPPER "${_require_up}" _require_up)
@@ -256,6 +253,10 @@ function(_cpack_conan_make_configure_method)
       if (NOT "${_options}" STREQUAL "")
         # Loop over all possible options
         foreach(_option IN LISTS _options)
+          if (NOT _first_require)
+            set(_method_lines "    def configure(self):\n")
+            set(_first_require TRUE)
+          endif()
           # Convert to upper-case C identifier
           string(MAKE_C_IDENTIFIER "${_option}" _option_up)
           string(TOUPPER "${_option_up}" _option_up)
@@ -400,6 +401,7 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
     FALLBACK_VARS
       CPACK_PACKAGE_HOMEPAGE_URL
   )
+  _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_TOPICS TOPICS)
   _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_LICENSE LICENSE)
   _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_SETTINGS SETTINGS)
   _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_GENERATORS GENERATORS)
@@ -437,7 +439,7 @@ function(_cpack_conan_make_conanfile CONAN_PACKAGE_CONANFILE_PY)
   if (_CPACK_CONAN_CONFIGURE_METHOD)
     string(APPEND _conanfile_py "${_CPACK_CONAN_CONFIGURE_METHOD}\n")
   endif()
-  if (_CPACK_CONAN_CONFIGURE_METHOD)
+  if (_CPACK_CONAN_REQUIREMENTS_METHOD)
     string(APPEND _conanfile_py "${_CPACK_CONAN_REQUIREMENTS_METHOD}\n")
   endif()
   string(APPEND _conanfile_py "${_CPACK_CONAN_PACKAGE_METHOD}\n")
@@ -497,6 +499,10 @@ elseif(CPACK_CONAN_ALL_IN_ONE)
   _cpack_conan_make_requirements_method(${CPACK_CONAN_COMPONENTS})
   _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
   _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_REFERENCE REFERENCE)
+  set(CPACK_CONAN_PACKAGE_COMPONENTS ${CPACK_CONAN_COMPONENTS})
+  if(CPACK_CONAN_EXTERNAL_PRE_PACKAGE_SCRIPT)
+    include("${CPACK_CONAN_EXTERNAL_PRE_PACKAGE_SCRIPT}")
+  endif()
   set(CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_PACKAGE_REFERENCE})
   list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS})
   if(CPACK_CONAN_PACKAGE_DEBUG)
@@ -506,7 +512,18 @@ elseif(CPACK_CONAN_ALL_IN_ONE)
   execute_process(
     COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
     WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+    ERROR_VARIABLE _CPACK_CONAN_CMD_ERROR
+    RESULT_VARIABLE _CPACK_CONAN_CMD_EXIT_CODE
   )
+  if(NOT ${_CPACK_CONAN_CMD_EXIT_CODE} EQUAL 0)
+    set(_CPACK_CONAN_CMD_ERROR_MSG "Command \"${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with")
+    set(_CPACK_CONAN_CMD_ERROR_MSG "${_CPACK_CONAN_CMD_ERROR_MSG} output:\n${_CPACK_CONAN_CMD_ERROR}")
+    message(FATAL_ERROR "${_CPACK_CONAN_CMD_ERROR_MSG}")
+  endif()
+  if(CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT)
+    include("${CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT}")
+  endif()
+  unset(CPACK_CONAN_PACKAGE_COMPONENTS)
 else()
   # First build grouped components
   if(CPACK_CONAN_GROUPS)
@@ -519,13 +536,17 @@ else()
       unset(_CPACK_CONAN_PACKAGE_METHOD)
       unset(_CPACK_CONAN_CONFIGURE_METHOD)
       _cpack_conan_make_package_method(${CPACK_CONAN_${_group_up}_GROUP_COMPONENTS})
-      _cpack_conan_make_configure_method(${CPACK_CONAN_${_group_up}_GROUP_COMPONENTS})
-      _cpack_conan_make_requirements_method(${CPACK_CONAN_${_group_up}_GROUP_COMPONENTS})
+      _cpack_conan_make_configure_method(${_group})
+      _cpack_conan_make_requirements_method(${_group})
       # Temporary set 'CPACK_CONAN_PACKAGE_COMPONENT' to the group name
       # to properly collect various per group settings
       set(CPACK_CONAN_PACKAGE_COMPONENT ${_group})
+      set(CPACK_CONAN_PACKAGE_COMPONENTS ${CPACK_CONAN_${_group_up}_GROUP_COMPONENTS})
       _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
       _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_REFERENCE REFERENCE)
+      if(CPACK_CONAN_EXTERNAL_PRE_PACKAGE_SCRIPT)
+        include("${CPACK_CONAN_EXTERNAL_PRE_PACKAGE_SCRIPT}")
+      endif()
       unset(CPACK_CONAN_PACKAGE_COMPONENT)
       set(CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_PACKAGE_REFERENCE})
       list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS})
@@ -536,7 +557,18 @@ else()
       execute_process(
         COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
         WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+        ERROR_VARIABLE _CPACK_CONAN_CMD_ERROR
+        RESULT_VARIABLE _CPACK_CONAN_CMD_EXIT_CODE
       )
+      if(NOT ${_CPACK_CONAN_CMD_EXIT_CODE} EQUAL 0)
+        set(_CPACK_CONAN_CMD_ERROR_MSG "Command \"${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with")
+        set(_CPACK_CONAN_CMD_ERROR_MSG "${_CPACK_CONAN_CMD_ERROR_MSG} output:\n${_CPACK_CONAN_CMD_ERROR}")
+        message(FATAL_ERROR "${_CPACK_CONAN_CMD_ERROR_MSG}")
+      endif()
+      if(CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT)
+        include("${CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT}")
+      endif()
+      unset(CPACK_CONAN_PACKAGE_COMPONENTS)
     endforeach()
   endif()
   # Second build single components
@@ -553,8 +585,12 @@ else()
       # Temporary set 'CPACK_CONAN_PACKAGE_COMPONENT' to the current
       # component name to properly collect various per component settings
       set(CPACK_CONAN_PACKAGE_COMPONENT ${_component})
+      set(CPACK_CONAN_PACKAGE_COMPONENTS ${_component})
       _cpack_conan_make_conanfile(_CPACK_CONAN_CONANFILE)
       _cpack_conan_variable_fallback(CPACK_CONAN_PACKAGE_REFERENCE REFERENCE)
+      if(CPACK_CONAN_EXTERNAL_PRE_PACKAGE_SCRIPT)
+        include("${CPACK_CONAN_EXTERNAL_PRE_PACKAGE_SCRIPT}")
+      endif()
       unset(CPACK_CONAN_PACKAGE_COMPONENT)
       set(CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_PACKAGE_REFERENCE})
       list(APPEND CPACK_CONAN_TOOL_COMMANDLINE_ARGS ${CPACK_CONAN_TOOL_COMMANDLINE_SETTINGS})
@@ -565,7 +601,18 @@ else()
       execute_process(
         COMMAND "${CONAN_EXECUTABLE}" export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}
         WORKING_DIRECTORY "${CPACK_TEMPORARY_DIRECTORY}"
+        ERROR_VARIABLE _CPACK_CONAN_CMD_ERROR
+        RESULT_VARIABLE _CPACK_CONAN_CMD_EXIT_CODE
       )
+      if(NOT ${_CPACK_CONAN_CMD_EXIT_CODE} EQUAL 0)
+        set(_CPACK_CONAN_CMD_ERROR_MSG "Command \"${CONAN_EXECUTABLE} export-pkg --force ${_CPACK_CONAN_CONANFILE} ${CPACK_CONAN_TOOL_COMMANDLINE_ARGS}\" failed with")
+        set(_CPACK_CONAN_CMD_ERROR_MSG "${_CPACK_CONAN_CMD_ERROR_MSG} output:\n${_CPACK_CONAN_CMD_ERROR}")
+        message(FATAL_ERROR "${_CPACK_CONAN_CMD_ERROR_MSG}")
+      endif()
+      if(CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT)
+        include("${CPACK_CONAN_EXTERNAL_POST_PACKAGE_SCRIPT}")
+      endif()
+      unset(CPACK_CONAN_PACKAGE_COMPONENTS)
     endforeach()
   endif()
 endif()
