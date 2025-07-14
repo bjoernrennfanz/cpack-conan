@@ -22,13 +22,27 @@ Enable component packaging for CPackConan
 * Mandatory : NO
 * Default   : OFF
 
+### CPACK_CONAN_TOOL_EXECUTABLE
+
+The path to the Conan tool executable. This replaces the default (automatically found on the host machine).
+
+* Mandatory : NO  
+* Default   : Automatically detected  
+
+### CPACK_CONAN_TOOL_FLAGS
+
+Extra flags to give to the Conan executable.
+
+* Mandatory : NO  
+* Default   : None  
+
 ### CPACK_CONAN_TOOL_SETTINGS
 
 Settings that needed to build the package, overwriting the defaults (host machine).
 See [Conan export-pkg command](https://docs.conan.io/1/reference/commands/creator/export-pkg.html) for more information.
 
 * Mandatory : YES
-* Default: None
+* Default   : None
 
 ### CPACK_CONAN_PACKAGE_NAME<br/>CPACK_CONAN_\<compName\>_PACKAGE_NAME
 
@@ -184,6 +198,27 @@ additionally the `CPACK_CONAN_PACKAGE_COMPONENTS` variable contains the currentl
 This variable can optionally specify the full path to a CMake script file to be run as a post-package step in the CPack invocation. 
 It is invoked after the packaging took place and may run external tools. The script has access to the variables defined by the CPack config file,
 additionally the `CPACK_CONAN_PACKAGE_COMPONENTS` variable contains the currently processed components.
+
+* Mandatory : NO
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_ADDITIONAL_PYTHON_IMPORTS <br/>CPACK_CONAN_\<compName\>_PACKAGE_ADDITIONAL_PYTHON_IMPORTS
+
+This variable can optionally contain additional import declarations that are inserted into the generated conanfile.py.
+
+* Mandatory : NO
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_ADDITIONAL_PYTHON_SCRIPT <br/>CPACK_CONAN_\<compName\>_PACKAGE_ADDITIONAL_PYTHON_SCRIPT
+
+This variable can optionally contain additional python code that are inserted into the generated conanfile.py at the end.
+
+* Mandatory : NO
+* Default   : None
+
+### CPACK_CONAN_PACKAGE_TEST_PACKAGE_FILES <br/>CPACK_CONAN_\<compName\>_PACKAGE_TEST_PACKAGE_FILES
+
+This variable can optionally contain a list of files that are copied to the test package folder.
 
 * Mandatory : NO
 * Default   : None
